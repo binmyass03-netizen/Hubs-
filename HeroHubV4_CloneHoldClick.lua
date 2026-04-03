@@ -354,9 +354,9 @@ local function instantClone()
         end)
         task.wait(0.2)
 
-        -- Then do the center click for reliability
+        -- Then do the lower-middle click for reliability
         local viewport = workspace.CurrentCamera.ViewportSize
-        local x, y = viewport.X * 0.5, viewport.Y * 0.5
+        local x, y = viewport.X * 0.5, viewport.Y * 0.88
 
         for i = 1, 3 do
             VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
@@ -628,9 +628,10 @@ function applyTheme(themeName)
     if not t then return end
 
     -- Mapa: cor antiga -> cor nova (para todas as 3 transicoes possiveis)
+    -- Accent1 e Accent2 sao excluidos — sempre ficam roxo
     local colorMap = {}
     for k, oldColor in pairs(Theme) do
-        if t[k] then
+        if t[k] and k ~= "Accent1" and k ~= "Accent2" then
             colorMap[oldColor] = t[k]
         end
     end
@@ -639,6 +640,9 @@ function applyTheme(themeName)
     for k, v in pairs(t) do
         Theme[k] = v
     end
+    -- Always force accent colors to purple regardless of theme
+    Theme.Accent1 = Color3.fromRGB(186, 120, 255)
+    Theme.Accent2 = Color3.fromRGB(136, 72, 230)
     Config.CurrentTheme = themeName
     SaveConfig()
 
@@ -753,7 +757,7 @@ function applyTheme(themeName)
             end
         end
 
-        -- Atualiza racetrack borders com nova cor
+        -- Atualiza racetrack borders — sempre roxo independente do tema
         local guisRT = {"AutoStealUI","HeroAdminPanel","SettingsUI","StealSpeedUI","HeroInvisPanel","HeroSettings","HeroStatusHUD","HeroAutoBuyUI"}
         for _, gn in ipairs(guisRT) do
             local sg = PlayerGui:FindFirstChild(gn)
@@ -764,12 +768,12 @@ function applyTheme(themeName)
                         if g2 then
                             g2.Color = ColorSequence.new{
                                 ColorSequenceKeypoint.new(0,   Theme.Background),
-                                ColorSequenceKeypoint.new(0.3, Theme.Accent1),
-                                ColorSequenceKeypoint.new(0.5, Theme.Accent2),
-                                ColorSequenceKeypoint.new(0.7, Theme.Accent1),
+                                ColorSequenceKeypoint.new(0.3, Color3.fromRGB(186, 120, 255)),
+                                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(136, 72, 230)),
+                                ColorSequenceKeypoint.new(0.7, Color3.fromRGB(186, 120, 255)),
                                 ColorSequenceKeypoint.new(1,   Theme.Background),
                             }
-                            obj.Color = Theme.Accent1
+                            obj.Color = Color3.fromRGB(186, 120, 255)
                         end
                     end
                 end
@@ -6715,22 +6719,83 @@ task.spawn(function()
 		clearAllGhosts()
 	end
 
-	local function animationTrickery()
-		local character = LocalPlayer.Character
-		if character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0 then
-			local anim = Instance.new("Animation")
-			anim.AnimationId = "http://www.roblox.com/asset/?id=18537363391"
-			local humanoid = character.Humanoid
-			local animator = humanoid:FindFirstChild("Animator") or Instance.new("Animator", humanoid)
-			local animTrack = animator:LoadAnimation(anim)
-			animTrack.Priority = Enum.AnimationPriority.Action4
-			animTrack:Play(0, 1, 0); anim:Destroy()
-			table.insert(tracks, animTrack)
-			animTrack.Stopped:Connect(function() if animPlaying then animationTrickery() end end)
-			task.delay(0, function()
-				animTrack.TimePosition = 0.7
-				task.delay(0.3, function() if animTrack then animTrack:AdjustSpeed(math.huge) end end)
+	-- Animation functions (swapped from Roxanne Utility)
+	local animDisableConn = nil
+	local originalAnimIds = {}
+	local animateScript = nil
+	local ANIM_TYPES = {"walk","run","jump","fall","idle","toolnone"}
+
+	local function cacheOriginalAnimations()
+		local char = LocalPlayer.Character
+		if not char then return false end
+		animateScript = char:FindFirstChild("Animate")
+		if not animateScript then return false end
+		originalAnimIds = {}
+		for _, animType in ipairs(ANIM_TYPES) do
+			local animFolder = animateScript:FindFirstChild(animType)
+			if animFolder then
+				originalAnimIds[animType] = {}
+				for _, anim in ipairs(animFolder:GetChildren()) do
+					if anim:IsA("Animation") then
+						originalAnimIds[animType][anim.Name] = anim.AnimationId
+					end
+				end
+			end
+		end
+		return true
+	end
+
+	local function disableAnimations()
+		if not animateScript then return end
+		for _, animType in ipairs(ANIM_TYPES) do
+			local animFolder = animateScript:FindFirstChild(animType)
+			if animFolder then
+				for _, anim in ipairs(animFolder:GetChildren()) do
+					if anim:IsA("Animation") then
+						anim.AnimationId = ""
+					end
+				end
+			end
+		end
+		local char = LocalPlayer.Character
+		if char then
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if hum then
+				for _, track in ipairs(hum:GetPlayingAnimationTracks()) do
+					track:Stop(0)
+				end
+			end
+		end
+	end
+
+	local function restoreAnimations()
+		local char = LocalPlayer.Character
+		if not char then return end
+		animateScript = char:FindFirstChild("Animate")
+		if not animateScript or not originalAnimIds then return end
+		for animType, anims in pairs(originalAnimIds) do
+			local animFolder = animateScript:FindFirstChild(animType)
+			if animFolder then
+				for animName, animId in pairs(anims) do
+					local anim = animFolder:FindFirstChild(animName)
+					if anim and anim:IsA("Animation") then
+						anim.AnimationId = animId
+					end
+				end
+			end
+		end
+	end
+
+	local function toggleAnimLoop(state)
+		if state then
+			if not next(originalAnimIds) then cacheOriginalAnimations() end
+			if animDisableConn then animDisableConn:Disconnect() end
+			animDisableConn = RunService.Heartbeat:Connect(function()
+				if animPlaying then disableAnimations() end
 			end)
+		else
+			if animDisableConn then animDisableConn:Disconnect(); animDisableConn = nil end
+			restoreAnimations()
 		end
 	end
 
@@ -6740,6 +6805,7 @@ task.spawn(function()
 		local character = LocalPlayer.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		animPlaying = false; _G.invisibleStealEnabled = false
+		toggleAnimLoop(false)
 		for _, t in pairs(tracks) do pcall(function() t:Stop() end) end
 		tracks = {}
 		if connection then connection:Disconnect(); connection = nil end
@@ -6763,7 +6829,9 @@ task.spawn(function()
 		tracks = {}; removeFolders()
 		local success = doClone()
 		if success then
-			task.wait(0.05); animationTrickery()
+			task.wait(0.05)
+			cacheOriginalAnimations()
+			toggleAnimLoop(true)
 			task.defer(function()
 				if _G.resetBrainrotBeam then pcall(_G.resetBrainrotBeam) end
 				if _G.resetPlotBeam then pcall(_G.resetPlotBeam) end
@@ -7089,6 +7157,7 @@ task.spawn(function()
 		if oldRoot then pcall(function() oldRoot:Destroy() end); oldRoot = nil end
 		if clone then pcall(function() clone:Destroy() end); clone = nil end
 		animPlaying = false; _G.invisibleStealEnabled = false
+		if animDisableConn then animDisableConn:Disconnect(); animDisableConn = nil end
 		if _G.updateMovementPanelInvisVisual then pcall(_G.updateMovementPanelInvisVisual, false) end
 		task.wait(0.2)
 		local camera = Workspace.CurrentCamera
