@@ -1,0 +1,146 @@
+-- █▀▀ ▄▀█ █░░ ▄▀█ █▀▀ ▀█▀ █ █▀▀   █▀▄ █░█ █▀▄▀█ █▀█ █▀▀ █▀█
+-- █▄█ █▀█ █▄▄ █▀█ █▄▄ ░█░ █ █▄▄   █▄▀ █▄█ █░▀░█ █▀▀ ██▄ █▀▄
+-- Version v1.7.5
+-- https://discord.gg/qy2neXET6W
+
+local fenv = getfenv()
+local env = _G
+local Players = game:GetService('Players')
+local RunService = game:GetService('RunService')
+local UserInputService = game:GetService('UserInputService')
+local TweenService = game:GetService('TweenService')
+local v8 = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local screengui_161 = Instance.new("ScreenGui")
+
+screengui_161.Name = "VelocityController"
+screengui_161.ResetOnSpawn = false
+screengui_161.Parent = screengui_161
+local frame_700 = Instance.new("Frame")
+
+frame_700.Name = "Container"
+frame_700.Size = UDim2.new(0, 145, 0, 52)
+frame_700.Position = UDim2.new(0.05, 0, 0.78, 0)
+frame_700.BackgroundColor3 = Color3.fromRGB(25, 35, 55)
+frame_700.BorderSizePixel = 0
+frame_700.Parent = frame_700
+local uicorner_586 = Instance.new("UICorner")
+
+uicorner_586.CornerRadius = UDim.new(0, 12)
+uicorner_586.Parent = uicorner_586
+local imagelabel_635 = Instance.new("ImageLabel")
+
+imagelabel_635.Name = "Shadow"
+imagelabel_635.Size = UDim2.new(1, 24, 1, 24)
+imagelabel_635.Position = UDim2.new(0, -12, 0, -8)
+imagelabel_635.BackgroundTransparency = 1
+imagelabel_635.Image = "rbxassetid://6015897843"
+imagelabel_635.ImageColor3 = Color3.fromRGB(0, 0, 0)
+imagelabel_635.ImageTransparency = 0.6
+imagelabel_635.ScaleType = Enum.ScaleType.Slice
+imagelabel_635.SliceCenter = Rect.new(49, 49, 450, 450)
+imagelabel_635.ZIndex = 0
+imagelabel_635.Parent = imagelabel_635
+local textbutton_984 = Instance.new("TextButton")
+
+textbutton_984.Name = "ToggleButton"
+textbutton_984.Size = UDim2.new(1, -60, 1, -8)
+textbutton_984.Position = UDim2.new(0, 4, 0, 4)
+textbutton_984.BackgroundColor3 = Color3.fromRGB(45, 85, 160)
+textbutton_984.Text = "OFF"
+textbutton_984.Font = Font.GothamBlack
+textbutton_984.TextColor3 = Color3.fromRGB(220, 230, 255)
+textbutton_984.TextSize = 16
+textbutton_984.AutoButtonColor = false
+textbutton_984.BorderSizePixel = 0
+textbutton_984.Parent = textbutton_984
+local uicorner_357 = Instance.new("UICorner")
+
+uicorner_357.CornerRadius = UDim.new(0, 9)
+uicorner_357.Parent = uicorner_357
+local uigradient_877 = Instance.new("UIGradient")
+
+uigradient_877.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 180, 200))
+})
+uigradient_877.Rotation = 90
+uigradient_877.Parent = uigradient_877
+local uistroke_113 = Instance.new("UIStroke")
+
+uistroke_113.Thickness = 1.5
+uistroke_113.Color = Color3.fromRGB(80, 130, 220)
+uistroke_113.Transparency = 0.3
+uistroke_113.Parent = uistroke_113
+local textbox_682 = Instance.new("TextBox")
+
+textbox_682.Name = "SpeedInput"
+textbox_682.Size = UDim2.new(0, 48, 1, -8)
+textbox_682.Position = UDim2.new(1, -52, 0, 4)
+textbox_682.BackgroundColor3 = Color3.fromRGB(18, 25, 40)
+textbox_682.Text = "12"
+textbox_682.PlaceholderText = "SPD"
+textbox_682.Font = Font.GothamBold
+textbox_682.TextColor3 = Color3.fromRGB(130, 180, 255)
+textbox_682.TextSize = 14
+textbox_682.ClearTextOnFocus = false
+textbox_682.Editable = false
+textbox_682.BorderSizePixel = 0
+textbox_682.Parent = textbox_682
+local uicorner_792 = Instance.new("UICorner")
+
+uicorner_792.CornerRadius = UDim.new(0, 9)
+uicorner_792.Parent = uicorner_792
+local uistroke_229 = Instance.new("UIStroke")
+
+uistroke_229.Thickness = 1
+uistroke_229.Color = Color3.fromRGB(50, 70, 110)
+uistroke_229.Parent = uistroke_229
+local textlabel_955 = Instance.new("TextLabel")
+
+textlabel_955.Size = UDim2.new(0, 20, 0, 14)
+textlabel_955.Position = UDim2.new(0, 6, 0, -16)
+textlabel_955.BackgroundColor3 = Color3.fromRGB(60, 100, 180)
+textlabel_955.Text = "Q"
+textlabel_955.Font = Font.GothamBold
+textlabel_955.TextColor3 = Color3.fromRGB(255, 255, 255)
+textlabel_955.TextSize = 10
+textlabel_955.BorderSizePixel = 0
+textlabel_955.Parent = textlabel_955
+local uicorner_23 = Instance.new("UICorner")
+
+uicorner_23.CornerRadius = UDim.new(0, 4)
+uicorner_23.Parent = uicorner_23
+textbutton_984.MouseButton1Click:Connect(function(arg1, arg2)
+    local v1 = TweenService:Create(TweenService, {}, TweenInfo.new(0.25), {
+    BackgroundColor3 = Color3.fromRGB(55, 180, 120)
+})
+    local v2 = v1:Play()
+    local v3 = TweenService:Create(TweenService, {}, TweenInfo.new(0.25), {
+    Color = Color3.fromRGB(80, 220, 140)
+})
+    local v4 = v3:Play()
+    textbutton_984.Text = "ON"
+    RunService.Heartbeat:Connect(function(arg1, arg2)
+    local v1 = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local v2 = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    local calc_3 = (Vector3.new(v2.MoveDirection.X, 0, v2.MoveDirection.Z) * 12)
+    local v4 = v1.Velocity.Lerp(v1.Velocity, Vector3.new(calc_3.X, v1.Velocity.Y, calc_3.Z), 0.45)
+    v1.Velocity = v4
+end)
+end)
+textbutton_984.MouseEnter:Connect(function(J, w, v, I)
+    local v1 = TweenService:Create(TweenService, {}, TweenInfo.new(0.15), {
+    Size = UDim2.new(1, -58, 1, -6)
+})
+    local v2 = v1:Play()
+end)
+textbutton_984.MouseLeave:Connect(function(J, w)
+    local v1 = TweenService:Create(TweenService, {}, TweenInfo.new(0.15), {
+    Size = UDim2.new(1, -60, 1, -8)
+})
+    local v2 = v1:Play()
+end)
+UserInputService.InputBegan:Connect(function(J, w, v, I, y, B) end)
+textbox_682.FocusLost:Connect(function(J, w, v, I, y)
+    textbox_682.Text = "12"
+end)
