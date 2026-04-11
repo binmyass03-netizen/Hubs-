@@ -1,0 +1,257 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local LocalPlayer = Players.LocalPlayer
+
+local enemyPosition = nil
+local basePosition = nil
+local espObjects = { enemy = {}, base = {} }
+
+local function createESP()
+    espObjects.enemy.circle = Drawing.new("Circle")
+    espObjects.enemy.circle.Thickness = 2
+    espObjects.enemy.circle.Filled = true
+    espObjects.enemy.circle.Color = Color3.new(1, 0, 0)
+    espObjects.enemy.circle.Visible = false
+    espObjects.enemy.circle.Radius = 20
+    espObjects.enemy.circle.NumSides = 24
+    
+    espObjects.enemy.line = Drawing.new("Line")
+    espObjects.enemy.line.Thickness = 2
+    espObjects.enemy.line.Color = Color3.new(1, 0, 0)
+    espObjects.enemy.line.Visible = false
+    
+    espObjects.enemy.text = Drawing.new("Text")
+    espObjects.enemy.text.Size = 14
+    espObjects.enemy.text.Center = true
+    espObjects.enemy.text.Color = Color3.new(1, 1, 1)
+    espObjects.enemy.text.Outline = true
+    espObjects.enemy.text.Visible = false
+    
+    espObjects.base.circle = Drawing.new("Circle")
+    espObjects.base.circle.Thickness = 2
+    espObjects.base.circle.Filled = true
+    espObjects.base.circle.Color = Color3.new(0, 1, 0)
+    espObjects.base.circle.Visible = false
+    espObjects.base.circle.Radius = 20
+    espObjects.base.circle.NumSides = 24
+    
+    espObjects.base.line = Drawing.new("Line")
+    espObjects.base.line.Thickness = 2
+    espObjects.base.line.Color = Color3.new(0, 1, 0)
+    espObjects.base.line.Visible = false
+    
+    espObjects.base.text = Drawing.new("Text")
+    espObjects.base.text.Size = 14
+    espObjects.base.text.Center = true
+    espObjects.base.text.Color = Color3.new(1, 1, 1)
+    espObjects.base.text.Outline = true
+    espObjects.base.text.Visible = false
+end
+
+local function updateESP()
+    local camera = workspace.CurrentCamera
+    local playerChar = LocalPlayer.Character
+    local rootPart = playerChar and playerChar:FindFirstChild("HumanoidRootPart")
+    local playerPos = rootPart and rootPart.Position
+    
+    if enemyPosition and camera and playerPos then
+        local targetScreen, onScreen = camera:WorldToViewportPoint(enemyPosition)
+        local playerScreen = camera:WorldToViewportPoint(playerPos)
+        
+        if onScreen then
+            espObjects.enemy.circle.Position = Vector2.new(targetScreen.X, targetScreen.Y)
+            espObjects.enemy.circle.Visible = true
+            espObjects.enemy.text.Position = Vector2.new(targetScreen.X, targetScreen.Y - 25)
+            espObjects.enemy.text.Text = string.format("Enemy\n(%.0f, %.0f, %.0f)", enemyPosition.X, enemyPosition.Y, enemyPosition.Z)
+            espObjects.enemy.text.Visible = true
+        else
+            espObjects.enemy.circle.Visible = false
+            espObjects.enemy.text.Visible = false
+        end
+        espObjects.enemy.line.From = Vector2.new(playerScreen.X, playerScreen.Y)
+        espObjects.enemy.line.To = Vector2.new(targetScreen.X, targetScreen.Y)
+        espObjects.enemy.line.Visible = true
+    else
+        espObjects.enemy.circle.Visible = false
+        espObjects.enemy.line.Visible = false
+        espObjects.enemy.text.Visible = false
+    end
+    
+    if basePosition and camera and playerPos then
+        local targetScreen, onScreen = camera:WorldToViewportPoint(basePosition)
+        local playerScreen = camera:WorldToViewportPoint(playerPos)
+        
+        if onScreen then
+            espObjects.base.circle.Position = Vector2.new(targetScreen.X, targetScreen.Y)
+            espObjects.base.circle.Visible = true
+            espObjects.base.text.Position = Vector2.new(targetScreen.X, targetScreen.Y - 25)
+            espObjects.base.text.Text = string.format("Base\n(%.0f, %.0f, %.0f)", basePosition.X, basePosition.Y, basePosition.Z)
+            espObjects.base.text.Visible = true
+        else
+            espObjects.base.circle.Visible = false
+            espObjects.base.text.Visible = false
+        end
+        espObjects.base.line.From = Vector2.new(playerScreen.X, playerScreen.Y)
+        espObjects.base.line.To = Vector2.new(targetScreen.X, targetScreen.Y)
+        espObjects.base.line.Visible = true
+    else
+        espObjects.base.circle.Visible = false
+        espObjects.base.line.Visible = false
+        espObjects.base.text.Visible = false
+    end
+end
+
+local function teleportToBase()
+    if not basePosition then
+        return
+    end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = CFrame.new(basePosition)
+    end
+end
+
+local function teleportToEnemy()
+    if not enemyPosition then
+        return
+    end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = CFrame.new(enemyPosition)
+    end
+end
+
+local function hookProximityPrompts()
+    ProximityPromptService.PromptButtonHoldEnded:Connect(function(prompt, player)
+        if player ~= LocalPlayer then return end
+        if prompt.Name == "Steal" or prompt.ActionText == "Steal" then
+            task.wait(0.1)
+            teleportToBase()
+        end
+    end)
+end
+
+local function createUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "StickyTPBypass"
+    screenGui.ResetOnSpawn = false
+    
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 350, 0, 230)
+    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -115)
+    mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    mainFrame.BackgroundTransparency = 0
+    mainFrame.BorderSizePixel = 3
+    mainFrame.BorderColor3 = Color3.new(1, 1, 1)
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Parent = screenGui
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "sticky tp bypass"
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.Parent = mainFrame
+    
+    local discordText = Instance.new("TextLabel")
+    discordText.Size = UDim2.new(1, 0, 0, 20)
+    discordText.Position = UDim2.new(0, 0, 0, 30)
+    discordText.BackgroundTransparency = 1
+    discordText.Text = "discord.gg/Z7vPrxecnJ"
+    discordText.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+    discordText.TextScaled = false
+    discordText.TextSize = 12
+    discordText.Font = Enum.Font.Gotham
+    discordText.TextWrapped = true
+    discordText.Parent = mainFrame
+    
+    local enemyLabel = Instance.new("TextLabel")
+    enemyLabel.Size = UDim2.new(0, 150, 0, 20)
+    enemyLabel.Position = UDim2.new(0.05, 0, 0.35, 0)
+    enemyLabel.BackgroundTransparency = 1
+    enemyLabel.Text = "Enemy Base (red ESP)"
+    enemyLabel.TextColor3 = Color3.new(1, 0.5, 0.5)
+    enemyLabel.TextScaled = true
+    enemyLabel.Parent = mainFrame
+    
+    local setEnemyBtn = Instance.new("TextButton")
+    setEnemyBtn.Size = UDim2.new(0, 140, 0, 35)
+    setEnemyBtn.Position = UDim2.new(0.05, 0, 0.45, 0)
+    setEnemyBtn.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    setEnemyBtn.Text = "Set Enemy Pos"
+    setEnemyBtn.TextColor3 = Color3.new(1, 1, 1)
+    setEnemyBtn.Parent = mainFrame
+    
+    local tpEnemyBtn = Instance.new("TextButton")
+    tpEnemyBtn.Size = UDim2.new(0, 140, 0, 35)
+    tpEnemyBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
+    tpEnemyBtn.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    tpEnemyBtn.Text = "TP to Enemy"
+    tpEnemyBtn.TextColor3 = Color3.new(1, 1, 1)
+    tpEnemyBtn.Parent = mainFrame
+    
+    local baseLabel = Instance.new("TextLabel")
+    baseLabel.Size = UDim2.new(0, 150, 0, 20)
+    baseLabel.Position = UDim2.new(0.52, 0, 0.35, 0)
+    baseLabel.BackgroundTransparency = 1
+    baseLabel.Text = "Your Base (green ESP)"
+    baseLabel.TextColor3 = Color3.new(0.5, 1, 0.5)
+    baseLabel.TextScaled = true
+    baseLabel.Parent = mainFrame
+    
+    local setBaseBtn = Instance.new("TextButton")
+    setBaseBtn.Size = UDim2.new(0, 140, 0, 35)
+    setBaseBtn.Position = UDim2.new(0.52, 0, 0.45, 0)
+    setBaseBtn.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    setBaseBtn.Text = "Set Base Pos"
+    setBaseBtn.TextColor3 = Color3.new(1, 1, 1)
+    setBaseBtn.Parent = mainFrame
+    
+    local tpBaseBtn = Instance.new("TextButton")
+    tpBaseBtn.Size = UDim2.new(0, 140, 0, 35)
+    tpBaseBtn.Position = UDim2.new(0.52, 0, 0.65, 0)
+    tpBaseBtn.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+    tpBaseBtn.Text = "TP to Base"
+    tpBaseBtn.TextColor3 = Color3.new(1, 1, 1)
+    tpBaseBtn.Parent = mainFrame
+    
+    setEnemyBtn.MouseButton1Click:Connect(function()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            enemyPosition = char.HumanoidRootPart.Position
+        end
+    end)
+    
+    tpEnemyBtn.MouseButton1Click:Connect(teleportToEnemy)
+    
+    setBaseBtn.MouseButton1Click:Connect(function()
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            basePosition = char.HumanoidRootPart.Position
+        end
+    end)
+    
+    tpBaseBtn.MouseButton1Click:Connect(teleportToBase)
+    
+    coroutine.wrap(function()
+        local red = true
+        while true do
+            mainFrame.BorderColor3 = red and Color3.new(1, 0, 0) or Color3.new(1, 1, 1)
+            red = not red
+            task.wait(1)
+        end
+    end)()
+    
+    screenGui.Parent = game:GetService("CoreGui")
+end
+
+createESP()
+createUI()
+hookProximityPrompts()
+
+RunService.RenderStepped:Connect(updateESP)
